@@ -1,0 +1,179 @@
+<html>
+    <head>
+	    <title>Todo list</title>
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	</head>
+	<body>
+	    <style>
+		    .Table{
+                display: table;
+                width:100%;
+				table-layout: fixed;
+            }
+			.Row{
+                display: table-row;
+            }
+            .Cell{
+                display: table-cell;
+                border: solid;
+                border-width: thin;
+                padding-left: 5px;
+                padding-right: 5px;
+                width:25%;
+				word-wrap: break-word;
+            }
+		</style>
+	    <div id="todolist">
+		    <p>Todo list</p>
+			<span >Việc cần làm : </span>
+			<input type="text" placeholder="Bạn dự định làm gì ?" v-model="mytodo"/>
+			</p>
+			<span >Ngày dự kiến thực hiện :</span>
+			<input type="date" v-model="mydate"/>
+			</p>
+			<span>Loại :</span>
+			<select v-model="current_category">
+                <option v-for = "(cat, index) in category_list" >{{cat}}</option>
+            </select>
+			<input type="text" placeholder="Nhập loại công việc mới." v-model="category_new"/>
+			<button v-if="category_new.length>0" v-on:click="add_category">Thêm</button>
+			</p>
+			<span >Số ngày thực hiện :</span>
+			<input type="number" min="1" v-model="mynumber"/>
+			</p>
+			<button v-on:click="addtodo">Thêm công việc</button>
+			</p>
+			<span >Ngày hiện tại: {{currentdate}}</span>
+			<button v-show="todo_list.length>1" v-on:click="increase_date">Tăng thêm 1 ngày</button>
+			</p>
+			<span v-show="todo_list.length>1">Tiến độ thực hiện : {{progress}}%</span>
+			</p>
+			<span v-show="todo_list.length>1">Các công việc hiện tại</span>
+			</p>
+			<mytable
+				v-show="todo_list.length>1"
+			    v-for = "(item) in todo_list"
+                v-bind:item = "item">
+			</mytable>
+		</div>
+		
+		<script type="text/javascript">
+		    Vue.component('mytable',{
+			    template:'<div class = "Table"><div class = "Row"  ><div class = "Cell"><p>{{item.category}}</p></div><div class = "Cell"><p>{{item.content}}</p></div><div class = "Cell"><p>{{item.due_date}}</p></div><div class = "Cell"><p>{{item.number}}</p></div></div></div>',
+				props:['item'],
+				data: function() {
+                    return {
+                        
+                    }
+                },
+                methods:{
+                    
+                }
+			});
+			
+			var vm = new Vue({
+			    el: '#todolist',
+				data: {
+				    mytodo:"",
+					mydate:"",
+					current_category:"",
+					category_list:[],
+					category_new:"",
+					mynumber:1,
+					currentdate:new Date().toJSON().slice(0,10),
+					progress_value:0,
+					progress_max:0,
+					progress:0,
+					todo_list:[{
+					    category:"Công việc",
+						content:"Nội dung",
+						due_date:"Ngày dự kiến",
+						number:"Số ngày"
+					}],
+					msperday:1000*24*60*60,
+					
+				},
+				
+				methods:{
+				    add_category : function() {
+					    this.category_list.push(this.category_new);
+						this.current_category = this.category_new;
+						this.category_new="";
+					},
+					
+					addtodo : function() {
+					    if (!this.validateParam()) return; 
+					    this.todo_list.push({
+						    category : this.current_category,
+							content : this.mytodo,
+							due_date : this.mydate,
+							number : this.mynumber
+						});
+						
+						this.progress_max += Number(this.mynumber);
+						this.progress = this.progress_value*100/this.progress_max;
+						this.recalculate();
+						
+						this.current_category="";
+						this.mytodo="";
+						this.mydate="";
+						this.mynumber=1;
+					},
+					getTime : function(date) {
+					    return new Date(date).getTime();
+					},
+					
+					increase_date : function() {
+						var current_time = this.getTime(this.currentdate);
+						current_time += this.msperday;
+						this.currentdate = new Date(current_time).toJSON().slice(0,10);
+						this.recalculate();
+					},
+					
+					recalculate : function() {
+					    var current_time = this.getTime(this.currentdate);
+					    this.progress_value = 0;
+						var i = 1;
+						while(i<this.todo_list.length)
+						{
+						    var it = this.todo_list[i++];
+						    var item_time = this.getTime(it.due_date);
+							if(item_time>current_time) continue;
+							var temp = (current_time-item_time)/this.msperday;
+							if(temp<Number(it.number))
+							    this.progress_value += temp+1;
+							else
+							    this.progress_value += Number(it.number);
+						}
+						this.progress = 100*this.progress_value/this.progress_max;
+					},
+					
+					validateParam : function() {
+						var flag = 1;
+						if(this.mytodo=="")
+						{
+							alert("Điền dự định của bạn");
+							flag = 0;
+						}
+						else if(this.mydate=="")
+						{
+						    alert("Chọn ngày thực hiện");
+							flag = 0;
+						}
+						else if(this.getTime(this.mydate)<this.getTime(this.currentdate))
+						{
+						    alert("Ngày thực hiện không phải là ngày trong quá khứ");
+							flag = 0;
+						}
+						else if(this.mynumber==""||this.mynumber<1)
+						{
+						    alert("Số ngày thực hiện phải lớn hơn 1");
+							flag = 0;
+						}
+						return flag;
+					},
+				}
+			});
+		</script>
+	</body>
+</html>
